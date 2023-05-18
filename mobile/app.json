@@ -4,6 +4,7 @@
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
+    "scheme": "spctm",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
@@ -22,9 +23,6 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       }
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
     }
   }
 }

@@ -8,19 +8,59 @@ import {
 } from '@expo-google-fonts/roboto'
 import { BaiJamjuree_700Bold as BaiJamjureeBold } from '@expo-google-fonts/bai-jamjuree'
 
-import LogoFlat from './assets/logo.svg'
-import BlurBG from './assets/luz.png'
-import Stripes from './assets/stripes.svg'
+import LogoFlat from '../assets/logo.svg'
+import BlurBG from '../assets/luz.png'
+import Stripes from '../assets/stripes.svg'
 import { styled } from 'nativewind'
+import { makeRedirectUri, useAuthRequest } from 'expo-auth-session'
+import { useEffect } from 'react'
+import { api } from '../lib/api'
+
+import * as SecureStore from 'expo-secure-store'
+import { useRouter } from 'expo-router'
 
 const StyledStripes = styled(Stripes)
 
+const discovery = {
+  authorizationEndpoint: 'https://github.com/login/oauth/authorize',
+  tokenEndpoint: 'https://github.com/login/oauth/access_token',
+  revocationEndpoint:
+    'https://github.com/settings/connections/applications/1962292b6815895ae4b5',
+}
+
 export default function App() {
+  const router = useRouter()
   const [hasLoadedFonts] = useFonts({
     RobotoRegular,
     RobotoBold,
     BaiJamjureeBold,
   })
+  const [, response, signInWithGithub] = useAuthRequest(
+    {
+      clientId: '1962292b6815895ae4b5',
+      scopes: ['identity'],
+      redirectUri: makeRedirectUri({
+        scheme: 'spctm',
+      }),
+    },
+    discovery,
+  )
+
+  async function handleGitHubOAuthCode(code: string) {
+    const { data } = await api.post('/auth', { code })
+
+    await SecureStore.setItemAsync('token', data.token)
+
+    router.push('/memories')
+  }
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { code } = response.params
+
+      handleGitHubOAuthCode(code)
+    }
+  }, [response])
 
   if (!hasLoadedFonts) {
     return null
@@ -49,6 +89,7 @@ export default function App() {
         <TouchableOpacity
           activeOpacity={0.7}
           className="rounded-full bg-green-500 px-5 py-2"
+          onPress={() => signInWithGithub()}
         >
           <Text className="font-alt text-sm uppercase text-black">
             Cadastrar Lembrança
