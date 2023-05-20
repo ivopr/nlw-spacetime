@@ -5,16 +5,73 @@ import {
   TextInput,
   View,
   TouchableOpacity,
+  Image,
 } from 'react-native'
 import Icon from '@expo/vector-icons/Feather'
 import NLWLogo from '../assets/logo.svg'
-import { Link } from 'expo-router'
+import { Link, useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useState } from 'react'
+import * as ImagePicker from 'expo-image-picker'
+import * as SecureStore from 'expo-secure-store'
+import { api } from '../lib/api'
 
 export default function NewMemory() {
+  const router = useRouter()
   const { bottom, top } = useSafeAreaInsets()
   const [isPublic, setIsPublic] = useState(false)
+  const [content, setContent] = useState('')
+  const [preview, setPreview] = useState<null | string>(null)
+
+  async function openImagePicker() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 1,
+    })
+
+    if (!result.canceled) {
+      setPreview(result.assets[0].uri)
+    }
+  }
+
+  async function handleCreateMemory() {
+    const token = await SecureStore.getItemAsync('token')
+
+    let coverUrl = ''
+
+    if (preview) {
+      const uploadFormData = new FormData()
+      uploadFormData.append('file', {
+        name: 'image.jpg',
+        type: 'image/jpeg',
+        uri: preview,
+      } as any)
+
+      const uploadResponse = await api.post('/upload', uploadFormData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      coverUrl = uploadResponse.data.fileURL
+    }
+
+    await api.post(
+      '/memory',
+      {
+        content,
+        coverUrl,
+        isPublic,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    )
+
+    router.push('/memories')
+  }
 
   return (
     <ScrollView
@@ -27,7 +84,7 @@ export default function NewMemory() {
       <View className="mt-4 flex-row items-center justify-between">
         <NLWLogo />
 
-        <Link asChild href="/memory">
+        <Link asChild href="/memories">
           <TouchableOpacity className="h-10 w-10 items-center justify-center rounded-full bg-purple-500">
             <Icon color="#FFF" name="arrow-left" size={16} />
           </TouchableOpacity>
@@ -50,13 +107,22 @@ export default function NewMemory() {
         <TouchableOpacity
           activeOpacity={0.7}
           className="h-32 items-center justify-center rounded-lg border border-dashed border-gray-500 bg-black/20"
+          onPress={openImagePicker}
         >
-          <View className="flex-row items-center gap-2">
-            <Icon name="image" color="#FFF" />
-            <Text className="font-body text-sm text-gray-200">
-              Adicionar foto ou video de capa
-            </Text>
-          </View>
+          {preview ? (
+            <Image
+              alt=""
+              className="h-full w-full rounded-lg object-cover"
+              source={{ uri: preview }}
+            />
+          ) : (
+            <View className="flex-row items-center gap-2">
+              <Icon name="image" color="#FFF" />
+              <Text className="font-body text-sm text-gray-200">
+                Adicionar foto ou video de capa
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
 
         <TextInput
@@ -64,14 +130,15 @@ export default function NewMemory() {
           multiline
           placeholderTextColor="#56565a"
           placeholder="Fique livre para adicionar fotos, videos e relatos sobre essa experiência que você quer lembrar pra sempre."
-          style={{
-            textAlignVertical: 'top',
-          }}
+          textAlignVertical="top"
+          value={content}
+          onChangeText={setContent}
         />
 
         <TouchableOpacity
           activeOpacity={0.7}
           className="items-center self-end rounded-full bg-green-500 px-5 py-2"
+          onPress={handleCreateMemory}
         >
           <Text className="font-alt text-sm uppercase text-black">Salvar</Text>
         </TouchableOpacity>

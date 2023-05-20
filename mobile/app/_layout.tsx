@@ -44,6 +44,7 @@ export default function Layout() {
 
       <Stack
         screenOptions={{
+          animation: 'fade',
           headerShown: false,
           contentStyle: {
             backgroundColor: 'transparent',
@@ -51,8 +52,8 @@ export default function Layout() {
         }}
       >
         <Stack.Screen name="index" redirect={isAuthenticated} />
-        <Stack.Screen name="new-memory" />
         <Stack.Screen name="memories" />
+        <Stack.Screen name="new-memory" />
       </Stack>
 
       <StatusBar style="light" translucent />
